@@ -1,0 +1,16 @@
+[backend]
+url = "https://sync.dirless.io"   # Dirless backend URL
+
+[identity_center]
+identity_store_id = "d-1234567890"  # found in the AWS Identity Center console
+region = "us-east-1"
+
+[syncer]
+id = "syncer-prod-01"               # unique, stable ID for this syncer instance
+interval_seconds = 300              # sync every 5 minutes
+heartbeat_interval_seconds = 10     # renew lease every 10s while syncing
+
+[tls]
+cert_path = "/etc/dirless/client.crt"
+key_path  = "/etc/dirless/client.key"
+ca_path   = "/etc/dirless/ca.crt"
