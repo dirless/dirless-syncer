@@ -24,11 +24,11 @@ module Dirless
         @region : String,
         @credentials : AWSCredentials,
       )
-        @base_url = "https://identitystore.#{@region}.amazonaws.com"
+        @endpoint = "https://identitystore.#{@region}.amazonaws.com"
       end
 
       def list_users : Array(ISUser)
-        paginate("/identitystores/#{@identity_store_id}/users", "Users") do |item|
+        paginate("AWSIdentityStore.ListUsers", {} of String => String, "Users") do |item|
           ISUser.new(
             user_id:      item["UserId"].as_s,
             username:     item["UserName"].as_s,
@@ -38,7 +38,7 @@ module Dirless
       end
 
       def list_groups : Array(ISGroup)
-        paginate("/identitystores/#{@identity_store_id}/groups", "Groups") do |item|
+        paginate("AWSIdentityStore.ListGroups", {} of String => String, "Groups") do |item|
           ISGroup.new(
             group_id:     item["GroupId"].as_s,
             display_name: item["DisplayName"].as_s,
@@ -51,7 +51,8 @@ module Dirless
         result = {} of String => Array(String)
         groups.each do |group|
           members = paginate(
-            "/identitystores/#{@identity_store_id}/groups/#{group.group_id}/memberships",
+            "AWSIdentityStore.ListGroupMemberships",
+            {"GroupId" => group.group_id},
             "GroupMemberships",
           ) do |item|
             item["MemberId"].as_h["UserId"].as_s
@@ -61,16 +62,25 @@ module Dirless
         result
       end
 
-      private def paginate(path : String, key : String, & : JSON::Any -> T) : Array(T) forall T
+      # AWS Identity Store uses the JSON 1.1 RPC protocol: all operations POST
+      # to the root path with X-Amz-Target and a JSON body.
+      private def paginate(target : String, extra_params : Hash(String, String), key : String, & : JSON::Any -> T) : Array(T) forall T
         results = [] of T
         next_token : String? = nil
+        uri = URI.parse("#{@endpoint}/")
 
         loop do
-          query = next_token ? "nextToken=#{URI.encode_www_form(next_token)}" : nil
-          uri   = URI.parse("#{@base_url}#{path}#{query ? "?#{query}" : ""}")
-          headers = AWSSigner.sign("GET", uri, SERVICE, @region, @credentials, HTTP::Headers.new)
+          body_hash = {"IdentityStoreId" => @identity_store_id}.merge(extra_params)
+          body_hash["NextToken"] = next_token if next_token
+          body = body_hash.to_json
 
-          response = HTTP::Client.get(uri, headers: headers)
+          base_headers = HTTP::Headers{
+            "Content-Type" => "application/x-amz-json-1.1",
+            "X-Amz-Target" => target,
+          }
+          headers = AWSSigner.sign("POST", uri, SERVICE, @region, @credentials, base_headers, body)
+
+          response = HTTP::Client.post(uri, headers: headers, body: body)
           raise "Identity Store API error (HTTP #{response.status_code}): #{response.body}" unless response.status_code == 200
 
           parsed = JSON.parse(response.body)
@@ -78,7 +88,7 @@ module Dirless
             results << yield item
           end
 
-          next_token = parsed["nextToken"]?.try(&.as_s)
+          next_token = parsed["NextToken"]?.try(&.as_s)
           break unless next_token
         end
 
