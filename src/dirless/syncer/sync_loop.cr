@@ -81,16 +81,12 @@ module Dirless
 
         Log.info { "Fetched #{users.size} users, #{groups.size} groups" }
 
-        # Build a user_id => username map for membership resolution
-        user_index = users.each_with_object({} of String => ISUser) { |u, h| h[u.user_id] = u }
-
         payload_groups = groups.map do |group|
-          member_usernames = (memberships[group.group_id]? || [] of String)
-            .compact_map { |uid| user_index[uid]?.try(&.username) }
+          member_ids = memberships[group.group_id]? || [] of String
           {
             "name"        => group.display_name,
             "external_id" => group.group_id,
-            "members"     => member_usernames,
+            "members"     => member_ids,
           }
         end
 

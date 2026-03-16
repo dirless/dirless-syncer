@@ -23,7 +23,7 @@ module Dirless
         session_token:     "AQoXnyc4lcK4w",
       )
 
-      IS_BASE = "https://identitystore.us-east-1.amazonaws.com"
+      IS_ENDPOINT = "https://identitystore.us-east-1.amazonaws.com/"
 
       def self.config : Config
         config_path = File.tempname("dirless-syncer-spec", ".toml")
@@ -48,23 +48,30 @@ module Dirless
         Config.load(config_path)
       end
 
+      # The Identity Store API uses JSON 1.1 RPC: all operations POST to the
+      # root endpoint, differentiated by the X-Amz-Target header.
+
       def self.stub_users(users : Array(NamedTuple(id: String, username: String, display_name: String)))
         items = users.map do |u|
           {"UserId" => u[:id], "UserName" => u[:username], "DisplayName" => u[:display_name]}
         end
-        WebMock.stub(:get, "#{IS_BASE}/identitystores/#{IDENTITY_STORE_ID}/users")
+        WebMock.stub(:post, IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
           .to_return(status: 200, body: {"Users" => items}.to_json)
       end
 
       def self.stub_groups(groups : Array(NamedTuple(id: String, display_name: String)))
         items = groups.map { |g| {"GroupId" => g[:id], "DisplayName" => g[:display_name]} }
-        WebMock.stub(:get, "#{IS_BASE}/identitystores/#{IDENTITY_STORE_ID}/groups")
+        WebMock.stub(:post, IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListGroups"})
           .to_return(status: 200, body: {"Groups" => items}.to_json)
       end
 
       def self.stub_memberships(group_id : String, user_ids : Array(String))
         items = user_ids.map { |uid| {"MembershipId" => "mem-#{uid}", "GroupId" => group_id, "MemberId" => {"UserId" => uid}} }
-        WebMock.stub(:get, "#{IS_BASE}/identitystores/#{IDENTITY_STORE_ID}/groups/#{group_id}/memberships")
+        expected_body = {"IdentityStoreId" => IDENTITY_STORE_ID, "GroupId" => group_id}.to_json
+        WebMock.stub(:post, IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListGroupMemberships"}, body: expected_body)
           .to_return(status: 200, body: {"GroupMemberships" => items}.to_json)
       end
     end

@@ -23,21 +23,27 @@ module Dirless::Syncer
       end
 
       it "returns empty array when no users exist" do
-        WebMock.stub(:get, "#{SpecHelper::IS_BASE}/identitystores/#{is_id}/users")
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
           .to_return(status: 200, body: {"Users" => [] of String}.to_json)
 
         client = IdentityStoreClient.new(is_id, region, creds)
         client.list_users.should be_empty
       end
 
-      it "follows pagination via nextToken" do
-        WebMock.stub(:get, "#{SpecHelper::IS_BASE}/identitystores/#{is_id}/users")
+      it "follows pagination via NextToken" do
+        page1_body = {"IdentityStoreId" => is_id}.to_json
+        page2_body = {"IdentityStoreId" => is_id, "NextToken" => "page2token"}.to_json
+
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"}, body: page1_body)
           .to_return(status: 200, body: {
             "Users"     => [{"UserId" => "usr-001", "UserName" => "alice", "DisplayName" => "Alice"}],
-            "nextToken" => "page2token",
+            "NextToken" => "page2token",
           }.to_json)
 
-        WebMock.stub(:get, "#{SpecHelper::IS_BASE}/identitystores/#{is_id}/users?nextToken=page2token")
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"}, body: page2_body)
           .to_return(status: 200, body: {
             "Users" => [{"UserId" => "usr-002", "UserName" => "bob", "DisplayName" => "Bob"}],
           }.to_json)
@@ -50,7 +56,8 @@ module Dirless::Syncer
       end
 
       it "raises on non-200 response" do
-        WebMock.stub(:get, "#{SpecHelper::IS_BASE}/identitystores/#{is_id}/users")
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
           .to_return(status: 403, body: {"message" => "Access denied"}.to_json)
 
         client = IdentityStoreClient.new(is_id, region, creds)
