@@ -62,12 +62,15 @@ module Dirless
         result
       end
 
+      MAX_RETRIES = 3
+
       # AWS Identity Store uses the JSON 1.1 RPC protocol: all operations POST
       # to the root path with X-Amz-Target and a JSON body.
       private def paginate(target : String, extra_params : Hash(String, String), key : String, & : JSON::Any -> T) : Array(T) forall T
         results = [] of T
         next_token : String? = nil
         uri = URI.parse("#{@endpoint}/")
+        retries = 0
 
         loop do
           body_hash = {"IdentityStoreId" => @identity_store_id}.merge(extra_params)
@@ -80,20 +83,40 @@ module Dirless
           }
           headers = AWSSigner.sign("POST", uri, SERVICE, @region, @credentials, base_headers, body)
 
-          response = HTTP::Client.post(uri, headers: headers, body: body)
-          raise "Identity Store API error (HTTP #{response.status_code}): #{response.body}" unless response.status_code == 200
-
-          parsed = JSON.parse(response.body)
-          (parsed[key]?.try(&.as_a) || [] of JSON::Any).each do |item|
-            results << yield item
+          client = HTTP::Client.new(uri)
+          client.connect_timeout = 10.seconds
+          client.read_timeout = 30.seconds
+          begin
+            response = client.post(uri.request_target, headers: headers, body: body)
+          ensure
+            client.close
           end
 
-          next_token = parsed["NextToken"]?.try(&.as_s)
-          break unless next_token
+          if response.status_code == 200
+            retries = 0
+            parsed = JSON.parse(response.body)
+            (parsed[key]?.try(&.as_a) || [] of JSON::Any).each do |item|
+              results << yield item
+            end
+
+            next_token = parsed["NextToken"]?.try(&.as_s)
+            break unless next_token
+          elsif response.status_code == 429 || response.status_code >= 500
+            retries += 1
+            raise "Identity Store API error after #{MAX_RETRIES} retries (HTTP #{response.status_code}): #{response.body}" if retries > MAX_RETRIES
+            delay = Math.min(2.0 ** retries, 30.0)
+            Log.warn { "Identity Store returned #{response.status_code}, retry #{retries}/#{MAX_RETRIES} in #{delay}s" }
+            sleep delay.seconds
+            next
+          else
+            raise "Identity Store API error (HTTP #{response.status_code}): #{response.body}"
+          end
         end
 
         results
       end
+
+      private Log = ::Log.for("dirless.syncer.identity_store")
     end
   end
 end

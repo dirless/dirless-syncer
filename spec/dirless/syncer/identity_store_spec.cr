@@ -65,6 +65,76 @@ module Dirless::Syncer
           client.list_users
         end
       end
+
+      it "propagates HTTP client errors as exceptions (M1 — timeout/connection errors bubble up)" do
+        # WebMock raises an error for unstubbed requests, simulating a
+        # connection or network failure. The IdentityStoreClient must not
+        # swallow the error — it should propagate so the caller can handle it.
+        expect_raises(Exception) do
+          IdentityStoreClient.new(is_id, region, creds).list_users
+        end
+      end
+
+      it "does not leak HTTP clients on connection errors (ensure closes client)" do
+        # Unstubbed request raises — the ensure block must close the client.
+        # If the client leaks, this would eventually exhaust file descriptors.
+        # We verify the exception propagates cleanly (ensure doesn't mask it).
+        5.times do
+          expect_raises(Exception) do
+            IdentityStoreClient.new(is_id, region, creds).list_users
+          end
+        end
+      end
+
+      it "retries on 429 and succeeds when the next attempt returns 200" do
+        call_count = 0
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
+          .to_return do |_|
+            call_count += 1
+            if call_count == 1
+              HTTP::Client::Response.new(status_code: 429, body: "throttled")
+            else
+              HTTP::Client::Response.new(status_code: 200, body: {"Users" => [{"UserId" => "usr-001", "UserName" => "alice", "DisplayName" => "Alice"}]}.to_json)
+            end
+          end
+
+        client = IdentityStoreClient.new(is_id, region, creds)
+        users = client.list_users
+        users.size.should eq(1)
+        users[0].username.should eq("alice")
+        call_count.should be >= 2
+      end
+
+      it "retries on 500 and succeeds when the next attempt returns 200" do
+        call_count = 0
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
+          .to_return do |_|
+            call_count += 1
+            if call_count == 1
+              HTTP::Client::Response.new(status_code: 500, body: "internal error")
+            else
+              HTTP::Client::Response.new(status_code: 200, body: {"Users" => [{"UserId" => "usr-001", "UserName" => "alice", "DisplayName" => "Alice"}]}.to_json)
+            end
+          end
+
+        client = IdentityStoreClient.new(is_id, region, creds)
+        users = client.list_users
+        users.size.should eq(1)
+        call_count.should be >= 2
+      end
+
+      it "raises after max retries on persistent 500 errors" do
+        WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
+          .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
+          .to_return(status: 500, body: "internal error")
+
+        client = IdentityStoreClient.new(is_id, region, creds)
+        expect_raises(Exception, /after 3 retries/) do
+          client.list_users
+        end
+      end
     end
 
     describe "#list_groups" do

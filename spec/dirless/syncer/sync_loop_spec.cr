@@ -108,6 +108,16 @@ module Dirless::Syncer
 
         SyncLoop.new(SpecHelper.config).run_once  # should not raise — errors are logged, not propagated
       end
+
+      it "completes run_once even when heartbeat fails once (M3 — single failure tolerated)" do
+        # All stubs including heartbeat endpoint returning 503 (simulating 1 failure).
+        # run_once should complete — a single heartbeat failure must not abort the sync.
+        stub_happy_path
+        WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/lease/heartbeat")
+          .to_return(status: 503, body: {"error" => "service unavailable"}.to_json)
+
+        SyncLoop.new(SpecHelper.config).run_once  # should not raise
+      end
     end
   end
 end

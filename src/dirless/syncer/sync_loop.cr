@@ -1,4 +1,5 @@
 require "log"
+require "socket"
 require "./config"
 require "./aws_credentials"
 require "./identity_store"
@@ -32,8 +33,9 @@ module Dirless
         heartbeat_channel = start_heartbeat
         begin
           payload = build_payload
-          Log.info { "Posting sync payload to backend" }
-          @backend.sync(payload)
+          ips = resolve_backend_ips
+          Log.info { "Posting sync payload to #{ips.size} backend node(s): #{ips.join(", ")}" }
+          @backend.sync_all(payload, ips)
           Log.info { "Sync complete" }
         ensure
           heartbeat_channel.close
@@ -53,6 +55,7 @@ module Dirless
       private def start_heartbeat : Channel(Nil)
         ch = Channel(Nil).new
         spawn do
+          consecutive_failures = 0
           loop do
             select
             when ch.receive?
@@ -61,13 +64,42 @@ module Dirless
               begin
                 @backend.heartbeat(@config.syncer_id)
                 Log.debug { "Heartbeat renewed" }
+                consecutive_failures = 0
               rescue ex
-                Log.warn { "Heartbeat failed: #{ex.message}" }
+                consecutive_failures += 1
+                Log.warn { "Heartbeat failed (attempt #{consecutive_failures}): #{ex.message}" }
+                if consecutive_failures >= 3
+                  Log.error { "Heartbeat failed #{consecutive_failures} times consecutively — lease may have expired, exiting" }
+                  exit(1)
+                end
               end
             end
           end
         end
         ch
+      end
+
+      # Returns the list of backend IPs to push the sync payload to.
+      #
+      # For HTTPS backends (production), resolves all DNS A records so the
+      # payload is pushed directly to each node's IP, bypassing the DNS
+      # round-robin that would otherwise deliver consecutive syncs to different
+      # nodes. For HTTP backends (dev / test), the hostname is used as-is to
+      # keep WebMock stubs working and avoid unnecessary DNS lookups.
+      private def resolve_backend_ips : Array(String)
+        uri = URI.parse(@config.backend_url)
+        host = uri.host.not_nil!
+        return [host] unless uri.scheme == "https"
+
+        port = uri.port || 443
+        addrs = Socket::Addrinfo.resolve(host, port, type: Socket::Type::STREAM)
+        ips = addrs.map(&.ip_address.address).uniq!
+        Log.debug { "resolved #{host} → #{ips.join(", ")}" }
+        ips
+      rescue ex
+        Log.warn { "DNS resolution failed for #{@config.backend_url}: #{ex.message} — falling back to single host" }
+        uri = URI.parse(@config.backend_url)
+        [uri.host.not_nil!]
       end
 
       private def build_payload : String

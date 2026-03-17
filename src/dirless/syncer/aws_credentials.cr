@@ -52,9 +52,9 @@ module Dirless
         raise "IMDS credentials fetch failed (HTTP #{response.status_code})" unless response.status_code == 200
         parsed = JSON.parse(response.body)
         AWSCredentials.new(
-          access_key_id:     parsed["AccessKeyId"].as_s,
-          secret_access_key: parsed["SecretAccessKey"].as_s,
-          session_token:     parsed["Token"].as_s,
+          access_key_id:     (parsed["AccessKeyId"]?.try(&.as_s) || raise "IMDS response missing AccessKeyId"),
+          secret_access_key: (parsed["SecretAccessKey"]?.try(&.as_s) || raise "IMDS response missing SecretAccessKey"),
+          session_token:     (parsed["Token"]?.try(&.as_s) || raise "IMDS response missing Token"),
         )
       end
     end
