@@ -21,7 +21,6 @@ module Dirless::Syncer
   end
 
   describe IMDSCredentials do
-
     describe ".fetch" do
       it "returns credentials when IMDS returns valid JSON" do
         stub_imds_token

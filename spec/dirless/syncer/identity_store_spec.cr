@@ -2,8 +2,8 @@ require "../../spec_helper"
 
 module Dirless::Syncer
   describe IdentityStoreClient do
-    creds  = SpecHelper::FAKE_CREDENTIALS
-    is_id  = SpecHelper::IDENTITY_STORE_ID
+    creds = SpecHelper::FAKE_CREDENTIALS
+    is_id = SpecHelper::IDENTITY_STORE_ID
     region = SpecHelper::REGION
 
     describe "#list_users" do

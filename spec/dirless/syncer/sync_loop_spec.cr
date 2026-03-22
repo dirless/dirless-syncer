@@ -41,7 +41,7 @@ module Dirless::Syncer
     describe "#run_once" do
       it "completes a full sync cycle on the happy path" do
         stub_happy_path
-        SyncLoop.new(SpecHelper.config).run_once  # should not raise
+        SyncLoop.new(SpecHelper.config).run_once # should not raise
       end
 
       it "sends provider IDs (not usernames) in the members array" do
@@ -98,7 +98,7 @@ module Dirless::Syncer
             "expires_at" => "2099-01-01T00:00:00Z",
           }.to_json)
 
-        SyncLoop.new(SpecHelper.config).run_once  # should not raise
+        SyncLoop.new(SpecHelper.config).run_once # should not raise
       end
 
       it "handles a backend sync error gracefully" do
@@ -106,7 +106,7 @@ module Dirless::Syncer
         WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/sync")
           .to_return(status: 413, body: {"error" => "payload exceeds maximum allowed size"}.to_json)
 
-        SyncLoop.new(SpecHelper.config).run_once  # should not raise — errors are logged, not propagated
+        SyncLoop.new(SpecHelper.config).run_once # should not raise — errors are logged, not propagated
       end
 
       it "completes run_once even when heartbeat fails once (M3 — single failure tolerated)" do
@@ -116,7 +116,7 @@ module Dirless::Syncer
         WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/lease/heartbeat")
           .to_return(status: 503, body: {"error" => "service unavailable"}.to_json)
 
-        SyncLoop.new(SpecHelper.config).run_once  # should not raise
+        SyncLoop.new(SpecHelper.config).run_once # should not raise
       end
     end
   end

@@ -12,10 +12,10 @@ module Dirless
 
       def initialize(@config : Config)
         @backend = BackendClient.new(
-          base_url:  @config.backend_url,
+          base_url: @config.backend_url,
           cert_path: @config.cert_path,
-          key_path:  @config.key_path,
-          ca_path:   @config.ca_path,
+          key_path: @config.key_path,
+          ca_path: @config.ca_path,
         )
       end
 
@@ -107,7 +107,7 @@ module Dirless
         client = IdentityStoreClient.new(@config.identity_store_id, @config.region, credentials)
 
         Log.info { "Fetching users and groups from Identity Store" }
-        users  = client.list_users
+        users = client.list_users
         groups = client.list_groups
         memberships = client.list_group_memberships(groups)
 

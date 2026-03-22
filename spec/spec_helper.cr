@@ -18,9 +18,9 @@ module Dirless
       BACKEND_URL       = "http://localhost:4000"
 
       FAKE_CREDENTIALS = AWSCredentials.new(
-        access_key_id:     "AKIAIOSFODNN7EXAMPLE",
+        access_key_id: "AKIAIOSFODNN7EXAMPLE",
         secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-        session_token:     "AQoXnyc4lcK4w",
+        session_token: "AQoXnyc4lcK4w",
       )
 
       IS_ENDPOINT = "https://identitystore.us-east-1.amazonaws.com/"

@@ -30,8 +30,8 @@ module Dirless
       def list_users : Array(ISUser)
         paginate("AWSIdentityStore.ListUsers", {} of String => String, "Users") do |item|
           ISUser.new(
-            user_id:      item["UserId"].as_s,
-            username:     item["UserName"].as_s,
+            user_id: item["UserId"].as_s,
+            username: item["UserName"].as_s,
             display_name: item["DisplayName"]?.try(&.as_s) || item["UserName"].as_s,
           )
         end
@@ -40,7 +40,7 @@ module Dirless
       def list_groups : Array(ISGroup)
         paginate("AWSIdentityStore.ListGroups", {} of String => String, "Groups") do |item|
           ISGroup.new(
-            group_id:     item["GroupId"].as_s,
+            group_id: item["GroupId"].as_s,
             display_name: item["DisplayName"].as_s,
           )
         end

@@ -31,15 +31,15 @@ module Dirless
         toml = TOML.parse(raw)
 
         new(
-          backend_url:                toml["backend"]["url"].as_s,
-          identity_store_id:          toml["identity_center"]["identity_store_id"].as_s,
-          region:                     toml["identity_center"]["region"].as_s,
-          syncer_id:                  toml["syncer"]["id"].as_s,
-          interval_seconds:           toml["syncer"]["interval_seconds"].as_i.to_i64,
+          backend_url: toml["backend"]["url"].as_s,
+          identity_store_id: toml["identity_center"]["identity_store_id"].as_s,
+          region: toml["identity_center"]["region"].as_s,
+          syncer_id: toml["syncer"]["id"].as_s,
+          interval_seconds: toml["syncer"]["interval_seconds"].as_i.to_i64,
           heartbeat_interval_seconds: toml["syncer"]["heartbeat_interval_seconds"].as_i.to_i64,
-          cert_path:                  toml["tls"]["cert_path"].as_s,
-          key_path:                   toml["tls"]["key_path"].as_s,
-          ca_path:                    toml["tls"]["ca_path"].as_s,
+          cert_path: toml["tls"]["cert_path"].as_s,
+          key_path: toml["tls"]["key_path"].as_s,
+          ca_path: toml["tls"]["ca_path"].as_s,
         )
       end
     end

@@ -3,10 +3,10 @@ require "../../spec_helper"
 module Dirless::Syncer
   private def self.test_client
     BackendClient.new(
-      base_url:  SpecHelper::BACKEND_URL,
+      base_url: SpecHelper::BACKEND_URL,
       cert_path: "/tmp/dirless-spec-test_client.crt",
-      key_path:  "/tmp/dirless-spec-test_client.key",
-      ca_path:   "/tmp/dirless-spec-ca.crt",
+      key_path: "/tmp/dirless-spec-test_client.key",
+      ca_path: "/tmp/dirless-spec-ca.crt",
     )
   end
 
@@ -57,7 +57,7 @@ module Dirless::Syncer
             "expires_at" => "2026-03-06T16:35:30Z",
           }.to_json)
 
-        test_client.heartbeat(SpecHelper::SYNCER_ID)  # should not raise
+        test_client.heartbeat(SpecHelper::SYNCER_ID) # should not raise
       end
 
       it "raises BackendError when heartbeat fails" do
@@ -76,7 +76,7 @@ module Dirless::Syncer
           .to_return(status: 200, body: {"status" => "ok"}.to_json)
 
         payload = {"groups" => [] of String, "users" => [] of String}.to_json
-        test_client.sync(payload)  # should not raise
+        test_client.sync(payload) # should not raise
       end
 
       it "raises BackendError on non-200" do
@@ -114,7 +114,7 @@ module Dirless::Syncer
         WebMock.stub(:post, "http://node3:4000/v1/syncer/sync")
           .to_return(status: 200, body: {"status" => "ok"}.to_json)
 
-        test_client.sync_all(payload, ["node1", "node2", "node3"])  # should not raise
+        test_client.sync_all(payload, ["node1", "node2", "node3"]) # should not raise
       end
 
       it "succeeds when one node is down — simulates primary going offline" do
