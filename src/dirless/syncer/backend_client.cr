@@ -148,10 +148,13 @@ module Dirless
           tls.certificate_chain = @cert_path
           tls.private_key = @key_path
           tls.ca_certificates = @ca_path
-          HTTP::Client.new(uri, tls: tls)
+          client = HTTP::Client.new(uri, tls: tls)
         else
-          HTTP::Client.new(uri)
+          client = HTTP::Client.new(uri)
         end
+        client.connect_timeout = 10.seconds
+        client.read_timeout = 30.seconds
+        client
       end
 
       private def build_client_for(ip : String, sni_host : String, port : Int32, scheme : String?) : HTTP::Client
@@ -160,10 +163,13 @@ module Dirless
           tls.certificate_chain = @cert_path
           tls.private_key = @key_path
           tls.ca_certificates = @ca_path
-          TargetedClient.new(ip, sni_host, port, tls)
+          client = TargetedClient.new(ip, sni_host, port, tls)
         else
-          HTTP::Client.new(ip, port)
+          client = HTTP::Client.new(ip, port)
         end
+        client.connect_timeout = 10.seconds
+        client.read_timeout = 30.seconds
+        client
       end
 
       private Log = ::Log.for("dirless.syncer.client")

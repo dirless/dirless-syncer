@@ -30,7 +30,7 @@ module Dirless
         raw = File.read(path)
         toml = TOML.parse(raw)
 
-        new(
+        config = new(
           backend_url: toml["backend"]["url"].as_s,
           identity_store_id: toml["identity_center"]["identity_store_id"].as_s,
           region: toml["identity_center"]["region"].as_s,
@@ -41,6 +41,22 @@ module Dirless
           key_path: toml["tls"]["key_path"].as_s,
           ca_path: toml["tls"]["ca_path"].as_s,
         )
+        config.validate!
+        config
+      end
+
+      protected def validate!
+        raise "Config error: backend_url must not be empty" if @backend_url.empty?
+        unless @backend_url.starts_with?("http://") || @backend_url.starts_with?("https://")
+          raise "Config error: backend_url must start with http:// or https://"
+        end
+        raise "Config error: identity_store_id must not be empty" if @identity_store_id.empty?
+        raise "Config error: interval_seconds must be positive" if @interval_seconds <= 0
+        if @backend_url.starts_with?("https://")
+          raise "Config error: cert_path must not be empty for HTTPS backend" if @cert_path.empty?
+          raise "Config error: key_path must not be empty for HTTPS backend" if @key_path.empty?
+          raise "Config error: ca_path must not be empty for HTTPS backend" if @ca_path.empty?
+        end
       end
     end
   end
