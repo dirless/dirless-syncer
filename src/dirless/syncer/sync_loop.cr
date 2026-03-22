@@ -122,9 +122,12 @@ module Dirless
           }
         end
 
-        # Assign primary group: first group the user is a member of
+        # Assign primary group: the group with the smallest (sorted-first)
+        # group_id that the user belongs to.  Sorting makes the assignment
+        # deterministic regardless of Hash iteration / AWS API response order.
         user_primary_group = {} of String => String
-        memberships.each do |group_id, user_ids|
+        memberships.keys.sort!.each do |group_id|
+          user_ids = memberships[group_id]
           user_ids.each do |uid|
             user_primary_group[uid] ||= group_id
           end
