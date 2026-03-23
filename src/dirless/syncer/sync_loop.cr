@@ -69,8 +69,9 @@ module Dirless
                 consecutive_failures += 1
                 Log.warn { "Heartbeat failed (attempt #{consecutive_failures}): #{ex.message}" }
                 if consecutive_failures >= 3
-                  Log.error { "Heartbeat failed #{consecutive_failures} times consecutively — lease may have expired, exiting" }
-                  exit(1)
+                  Log.error { "Heartbeat failed #{consecutive_failures} times consecutively — lease may have expired, aborting sync" }
+                  ch.close
+                  break
                 end
               end
             end
