@@ -4,6 +4,10 @@ shards:
     git: https://github.com/crystal-ameba/ameba.git
     version: 1.6.4
 
+  dirless-http:
+    git: https://github.com/dirless/dirless-http.git
+    version: 0.1.0+git.commit.0467b92e8c2e89cf4ac916f6676140282fd9bc58
+
   toml:
     git: https://github.com/crystal-community/toml.cr.git
     version: 0.8.1

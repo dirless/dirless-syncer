@@ -7,6 +7,8 @@ dependencies:
   toml:
     github: crystal-community/toml.cr
     version: "~> 0.8.1"
+  dirless-http:
+    github: dirless/dirless-http
 
 development_dependencies:
   ameba:
