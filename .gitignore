@@ -1,4 +1,5 @@
 lib/
 bin/
 .shards/
+*.dwarf
 dirless-syncer
