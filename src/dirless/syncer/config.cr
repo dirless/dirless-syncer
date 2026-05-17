@@ -5,8 +5,8 @@ module Dirless
     struct Config
       getter backend_url : String
       getter enrollment_token : String?
-      getter identity_store_id : String
-      getter region : String
+      getter identity_store_id : String?
+      getter region : String?
       getter syncer_id : String
       getter interval_seconds : Int64
       getter heartbeat_interval_seconds : Int64
@@ -17,8 +17,8 @@ module Dirless
       def initialize(
         @backend_url : String,
         @enrollment_token : String?,
-        @identity_store_id : String,
-        @region : String,
+        @identity_store_id : String?,
+        @region : String?,
         @syncer_id : String,
         @interval_seconds : Int64,
         @heartbeat_interval_seconds : Int64,
@@ -35,8 +35,8 @@ module Dirless
         config = new(
           backend_url: toml["backend"]["url"].as_s,
           enrollment_token: toml["backend"]["enrollment_token"]?.try(&.as_s),
-          identity_store_id: toml["identity_center"]["identity_store_id"].as_s,
-          region: toml["identity_center"]["region"].as_s,
+          identity_store_id: toml["identity_center"]?.try(&.["identity_store_id"]?).try(&.as_s),
+          region: toml["identity_center"]?.try(&.["region"]?).try(&.as_s),
           syncer_id: toml["syncer"]["id"].as_s,
           interval_seconds: toml["syncer"]["interval_seconds"].as_i.to_i64,
           heartbeat_interval_seconds: toml["syncer"]["heartbeat_interval_seconds"].as_i.to_i64,
@@ -53,7 +53,7 @@ module Dirless
         unless @backend_url.starts_with?("http://") || @backend_url.starts_with?("https://")
           raise "Config error: backend_url must start with http:// or https://"
         end
-        raise "Config error: identity_store_id must not be empty" if @identity_store_id.empty?
+        # identity_store_id and region are optional — auto-detected at startup if absent
         raise "Config error: interval_seconds must be positive" if @interval_seconds <= 0
         if @backend_url.starts_with?("https://")
           raise "Config error: cert_path must not be empty for HTTPS backend" if @cert_path.empty?

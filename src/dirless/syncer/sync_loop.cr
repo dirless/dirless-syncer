@@ -10,7 +10,7 @@ module Dirless
     class SyncLoop
       Log = ::Log.for("dirless.syncer")
 
-      def initialize(@config : Config)
+      def initialize(@config : Config, @identity_store_id : String, @region : String)
         @backend = BackendClient.new(
           base_url: @config.backend_url,
           cert_path: @config.cert_path,
@@ -105,7 +105,7 @@ module Dirless
 
       private def build_payload : String
         credentials = IMDSCredentials.fetch
-        client = IdentityStoreClient.new(@config.identity_store_id, @config.region, credentials)
+        client = IdentityStoreClient.new(@identity_store_id, @region, credentials)
 
         Log.info { "Fetching users and groups from Identity Store" }
         users = client.list_users

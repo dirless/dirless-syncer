@@ -1,5 +1,5 @@
 name: dirless-syncer
-version: 0.2.0
+version: 0.3.0
 
 description: Sync AWS IAM Identity Center users to Dirless-enrolled Linux nodes
 

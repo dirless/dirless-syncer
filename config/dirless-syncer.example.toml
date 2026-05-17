@@ -2,9 +2,9 @@
 url              = "https://yourname.dirless.com"   # your Dirless subdomain
 enrollment_token = "your-token-here"                # from your portal dashboard; only needed on first start
 
-[identity_center]
-identity_store_id = "d-1234567890"  # found in the AWS Identity Center console
-region = "us-east-1"
+# [identity_center]
+# identity_store_id = "d-1234567890"  # normally auto-detected via SSO Admin API
+# region            = "us-east-1"     # normally auto-detected from EC2 IMDS
 
 [syncer]
 id = "syncer-prod-01"               # unique, stable ID for this syncer instance

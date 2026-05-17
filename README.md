@@ -25,7 +25,8 @@ into your AWS account.
   "Action": [
     "identitystore:ListUsers",
     "identitystore:ListGroups",
-    "identitystore:ListGroupMemberships"
+    "identitystore:ListGroupMemberships",
+    "sso:ListInstances"
   ],
   "Resource": "*"
 }
@@ -64,9 +65,9 @@ Or create `/etc/dirless/dirless-syncer.toml` manually:
 url              = "https://yourname.dirless.com"  # your Dirless subdomain
 enrollment_token = "your-token-here"               # from your portal dashboard
 
-[identity_center]
-identity_store_id = "d-1234567890"  # AWS Console → IAM Identity Center → Settings
-region = "us-east-1"
+# [identity_center]               # normally auto-detected — uncomment only to override
+# identity_store_id = "d-1234567890"
+# region = "us-east-1"
 
 [syncer]
 id = "syncer-01"               # unique, stable name for this syncer instance
