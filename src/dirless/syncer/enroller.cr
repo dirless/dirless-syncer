@@ -25,7 +25,10 @@ module Dirless
       def self.enroll(config : Config, token : String) : Nil
         Log.info { "No mTLS certs found — starting self-enrollment" }
 
-        tenant_id = derive_tenant_id
+        # Use the enrollment token as the HMAC key so all nodes enrolling
+        # with the same token derive the same tenant ID, regardless of which
+        # machine they run on.
+        tenant_id = derive_tenant_id(token)
         Log.info { "Tenant ID: #{tenant_id}" }
 
         Log.info { "Generating age keypair..." }
@@ -47,21 +50,13 @@ module Dirless
         Log.info { "Enrollment complete" }
       end
 
-      private def self.derive_tenant_id : String
-        hmac_secret = load_or_generate_hmac_key
+      private def self.derive_tenant_id(enrollment_token : String) : String
+        # Write the token as the hmac.key so it persists and matches what
+        # dirless-cli enroll would derive on any other node using the same token.
+        write_file(HMAC_KEY_PATH, enrollment_token)
         account_id = fetch_aws_account_id
-        hashed = OpenSSL::HMAC.hexdigest(:sha256, hmac_secret, account_id)
+        hashed = OpenSSL::HMAC.hexdigest(:sha256, enrollment_token, account_id)
         "aws___#{hashed}"
-      end
-
-      private def self.load_or_generate_hmac_key : String
-        if File.exists?(HMAC_KEY_PATH)
-          File.read(HMAC_KEY_PATH).strip
-        else
-          secret = Random::Secure.hex(32)
-          write_file(HMAC_KEY_PATH, secret)
-          secret
-        end
       end
 
       private def self.fetch_aws_account_id : String
