@@ -23,11 +23,25 @@ module Dirless::Syncer
         end
       end
 
-      it "raises when identity_store_id is empty" do
-        path = write_config(identity_store_id: "")
-        expect_raises(Exception, /identity_store_id must not be empty/) do
-          Config.load(path)
-        end
+      it "loads without identity_center section (auto-detect)" do
+        path = File.tempname("dirless-syncer-config-spec", ".toml")
+        File.write(path, <<-TOML)
+          [backend]
+          url = "http://localhost:4000"
+
+          [syncer]
+          id = "syncer-01"
+          interval_seconds = 300
+          heartbeat_interval_seconds = 10
+
+          [tls]
+          cert_path = "/tmp/cert.crt"
+          key_path  = "/tmp/cert.key"
+          ca_path   = "/tmp/ca.crt"
+          TOML
+        config = Config.load(path)
+        config.identity_store_id.should be_nil
+        config.region.should be_nil
       end
 
       it "raises when interval_seconds is zero" do
