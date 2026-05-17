@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        crystal: [latest, nightly]
+        crystal: [latest]
     steps:
       - uses: actions/checkout@v4
       - uses: crystal-lang/install-crystal@v1

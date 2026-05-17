@@ -23,7 +23,6 @@ module Dirless
     # #sync_all so that all nodes stay current without relying on primary-push
     # database replication as the sole delivery mechanism.
     class BackendClient
-
       def initialize(
         @base_url : String,
         @cert_path : String,
