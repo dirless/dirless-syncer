@@ -1,5 +1,5 @@
 name: dirless-syncer
-version: 0.1.0
+version: 0.2.0
 
 description: Sync AWS IAM Identity Center users to Dirless-enrolled Linux nodes
 
@@ -16,6 +16,12 @@ dependencies:
     version: "~> 0.8.1"
   dirless-http:
     github: dirless/dirless-http
+  age-crystal:
+    github: dirless/age-crystal
+    version: 0.2.0
+  x509-crystal:
+    github: dirless/x509-crystal
+    version: 0.2.1
 
 development_dependencies:
   ameba:

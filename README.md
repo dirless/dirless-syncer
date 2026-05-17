@@ -16,7 +16,6 @@ into your AWS account.
 ## Requirements
 
 - Must run on an EC2 instance with an IAM role that has Identity Store read permissions
-- Node must be enrolled first — run `dirless-cli enroll` before starting the syncer
 
 ## IAM permissions required
 
@@ -62,7 +61,8 @@ Or create `/etc/dirless/dirless-syncer.toml` manually:
 
 ```toml
 [backend]
-url = "https://yourname.dirless.com"   # your Dirless subdomain
+url              = "https://yourname.dirless.com"  # your Dirless subdomain
+enrollment_token = "your-token-here"               # from your portal dashboard
 
 [identity_center]
 identity_store_id = "d-1234567890"  # AWS Console → IAM Identity Center → Settings
@@ -72,6 +72,10 @@ region = "us-east-1"
 id = "syncer-01"               # unique, stable name for this syncer instance
 interval_seconds = 300         # sync every 5 minutes
 ```
+
+On first start, the syncer uses `enrollment_token` to generate mTLS certificates and register
+with the backend automatically. The token can be removed from the config afterwards — the
+certificates handle authentication from that point on.
 
 The config path can be overridden with the `DIRLESS_SYNCER_CONFIG` environment variable.
 

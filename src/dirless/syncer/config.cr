@@ -4,6 +4,7 @@ module Dirless
   module Syncer
     struct Config
       getter backend_url : String
+      getter enrollment_token : String?
       getter identity_store_id : String
       getter region : String
       getter syncer_id : String
@@ -15,6 +16,7 @@ module Dirless
 
       def initialize(
         @backend_url : String,
+        @enrollment_token : String?,
         @identity_store_id : String,
         @region : String,
         @syncer_id : String,
@@ -32,6 +34,7 @@ module Dirless
 
         config = new(
           backend_url: toml["backend"]["url"].as_s,
+          enrollment_token: toml["backend"]["enrollment_token"]?.try(&.as_s),
           identity_store_id: toml["identity_center"]["identity_store_id"].as_s,
           region: toml["identity_center"]["region"].as_s,
           syncer_id: toml["syncer"]["id"].as_s,
