@@ -1,0 +1,32 @@
+FROM crystallang/crystal:latest-alpine
+
+RUN apk add --no-cache \
+    bash \
+    git \
+    binutils \
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static \
+    pcre2-dev \
+    zlib-dev \
+    zlib-static \
+    gmp-dev \
+    libevent-dev \
+    libevent-static \
+    yaml-dev \
+    yaml-static \
+    gc-dev \
+    gc-static
+
+WORKDIR /build
+
+COPY shard.yml shard.lock ./
+RUN shards install --production
+
+COPY src/ ./src/
+RUN crystal build src/dirless_syncer.cr \
+    -o dirless-syncer \
+    --release \
+    --no-debug \
+    --static && \
+    strip --strip-all dirless-syncer

@@ -1,5 +1,5 @@
 [backend]
-url = "https://sync.dirless.io"   # Dirless backend URL
+url = "https://yourname.dirless.com"   # your Dirless subdomain
 
 [identity_center]
 identity_store_id = "d-1234567890"  # found in the AWS Identity Center console

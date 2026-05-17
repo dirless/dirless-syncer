@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            rpm_target: x86_64
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            rpm_target: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # ── Static binary ───────────────────────────────────────────────────────
+
+      - name: Build static binary (Alpine/musl)
+        run: |
+          mkdir -p dist
+          docker build -t dirless-syncer-builder -f Dockerfile.build .
+          docker run --rm \
+            -v "${{ github.workspace }}/dist":/output \
+            dirless-syncer-builder \
+            sh -c "cp /build/dirless-syncer /output/dirless-syncer && chmod +x /output/dirless-syncer"
+          mv dist/dirless-syncer dist/dirless-syncer-${{ matrix.arch }}
+
+      # ── RPM ────────────────────────────────────────────────────────────────
+
+      - name: Build RPM (${{ matrix.arch }})
+        run: |
+          mkdir -p dist/rpms
+          docker run --rm \
+            -v "${{ github.workspace }}/dist":/dist:ro \
+            -v "${{ github.workspace }}/packaging":/packaging:ro \
+            -v "${{ github.workspace }}/config":/config:ro \
+            -v "${{ github.workspace }}/dist/rpms":/out \
+            amazonlinux:2023 \
+            bash -c "
+              set -euo pipefail
+              dnf install -y rpm-build --quiet
+              mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
+              cp /dist/dirless-syncer-${{ matrix.arch }} ~/rpmbuild/SOURCES/dirless-syncer
+              cp /packaging/dirless-syncer.service ~/rpmbuild/SOURCES/dirless-syncer.service
+              cp /config/dirless-syncer.example.toml ~/rpmbuild/SOURCES/dirless-syncer.example.toml
+              rpmbuild -bb \
+                --define 'pkg_version ${{ steps.ver.outputs.version }}' \
+                --target ${{ matrix.rpm_target }} \
+                /packaging/dirless-syncer.spec
+              cp ~/rpmbuild/RPMS/${{ matrix.rpm_target }}/*.rpm /out/
+            "
+          ls -lh dist/rpms/
+
+      # ── Upload artifacts ────────────────────────────────────────────────────
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: |
+            dist/dirless-syncer-${{ matrix.arch }}
+            dist/rpms/*.rpm
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List release assets
+        run: find dist -type f | sort
+
+      # ── GitHub Release ──────────────────────────────────────────────────────
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/dirless-syncer-x86_64
+            dist/dirless-syncer-aarch64
+            dist/**/*.rpm
+
+      # ── RPM repository (dirless.com/rpm/) ───────────────────────────────────
+
+      - name: Install createrepo_c
+        run: sudo apt-get install -y createrepo-c
+
+      - name: Checkout dirless-website
+        uses: actions/checkout@v4
+        with:
+          repository: dirless/dirless-website
+          token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+          path: dirless-website
+
+      - name: Add RPMs to repository tree
+        run: |
+          mkdir -p dirless-website/rpm/x86_64/Packages
+          mkdir -p dirless-website/rpm/aarch64/Packages
+          find dist -name "*x86_64*.rpm" -exec cp {} dirless-website/rpm/x86_64/Packages/ \;
+          find dist -name "*aarch64*.rpm" -exec cp {} dirless-website/rpm/aarch64/Packages/ \;
+          createrepo_c --update dirless-website/rpm/x86_64/
+          createrepo_c --update dirless-website/rpm/aarch64/
+
+      - name: Commit and push RPM repository update
+        run: |
+          cd dirless-website
+          git config user.email "info@dirless.com"
+          git config user.name "Dirless Bot"
+          git add rpm/
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "Add dirless-syncer ${{ github.ref_name }} to RPM repository"
+          git push

@@ -15,9 +15,8 @@ into your AWS account.
 
 ## Requirements
 
-- Crystal >= 1.9.0
 - Must run on an EC2 instance with an IAM role that has Identity Store read permissions
-- Enrollment must be completed first (`dirless-cli enroll`) — mTLS certs must exist at `/etc/dirless/`
+- Node must be enrolled first — run `dirless-cli enroll` before starting the syncer
 
 ## IAM permissions required
 
@@ -33,23 +32,64 @@ into your AWS account.
 }
 ```
 
-## Configuration
+## Installation
 
-Copy `config/dirless-syncer.example.toml` to `/etc/dirless/dirless-syncer.toml`
-and fill in your values. The config path can be overridden with the
-`DIRLESS_SYNCER_CONFIG` environment variable.
-
-## Building
+### Option 1 — RPM (RHEL / Amazon Linux 2023)
 
 ```sh
-shards install
-crystal build src/dirless_syncer.cr -o dirless-syncer
+curl -fsSL https://dirless.com/rpm/dirless.repo \
+  -o /etc/yum.repos.d/dirless.repo
+dnf install -y dirless-syncer
 ```
+
+### Option 2 — Direct binary (Linux x86_64)
+
+```sh
+curl -fsSL https://github.com/dirless/dirless-syncer/releases/latest/download/dirless-syncer-x86_64 \
+  -o /usr/local/bin/dirless-syncer
+chmod +x /usr/local/bin/dirless-syncer
+```
+
+## Configuration
+
+Copy the example config and fill in your values:
+
+```sh
+cp /usr/share/doc/dirless-syncer/dirless-syncer.example.toml /etc/dirless/dirless-syncer.toml
+```
+
+Or create `/etc/dirless/dirless-syncer.toml` manually:
+
+```toml
+[backend]
+url = "https://yourname.dirless.com"   # your Dirless subdomain
+
+[identity_center]
+identity_store_id = "d-1234567890"  # AWS Console → IAM Identity Center → Settings
+region = "us-east-1"
+
+[syncer]
+id = "syncer-01"               # unique, stable name for this syncer instance
+interval_seconds = 300         # sync every 5 minutes
+```
+
+The config path can be overridden with the `DIRLESS_SYNCER_CONFIG` environment variable.
 
 ## Running
 
 ```sh
-DIRLESS_SYNCER_CONFIG=/etc/dirless/dirless-syncer.toml ./dirless-syncer
+# If installed via RPM (service file included):
+systemctl enable --now dirless-syncer
+
+# Or run directly:
+dirless-syncer
+```
+
+## Building from source
+
+```sh
+shards install
+crystal build src/dirless_syncer.cr -o dirless-syncer --release
 ```
 
 ## Testing
@@ -58,3 +98,7 @@ DIRLESS_SYNCER_CONFIG=/etc/dirless/dirless-syncer.toml ./dirless-syncer
 shards install
 crystal spec
 ```
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
