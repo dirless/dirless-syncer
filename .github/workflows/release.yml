@@ -136,4 +136,4 @@ jobs:
           git add rpm/
           git diff --staged --quiet && echo "No changes" && exit 0
           git commit -m "Add dirless-syncer ${{ github.ref_name }} to RPM repository"
-          git push
+          git pull --rebase && git push
