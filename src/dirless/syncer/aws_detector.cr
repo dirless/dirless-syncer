@@ -42,7 +42,8 @@ module Dirless
       # Raises if no instance is found or more than one is found (ambiguous).
       def self.detect_identity_store_id(region : String, credentials : AWSCredentials) : String
         uri = URI.parse("https://sso.#{region}.amazonaws.com/instances")
-        headers = AWSSigner.sign("GET", uri, "sso", region, credentials, HTTP::Headers.new)
+        base_headers = HTTP::Headers{"Content-Type" => "application/json"}
+        headers = AWSSigner.sign("GET", uri, "sso", region, credentials, base_headers)
 
         client = HTTP::Client.new(uri, tls: true)
         client.connect_timeout = 10.seconds
