@@ -7,7 +7,7 @@ enrollment_token = "your-token-here"                # from your portal dashboard
 # region            = "us-east-1"     # normally auto-detected from EC2 IMDS
 
 [syncer]
-id = "syncer-prod-01"               # unique, stable ID for this syncer instance
+# id = "syncer-prod-01"             # normally auto-detected from EC2 instance ID
 interval_seconds = 300              # sync every 5 minutes
 heartbeat_interval_seconds = 10     # renew lease every 10s while syncing
 

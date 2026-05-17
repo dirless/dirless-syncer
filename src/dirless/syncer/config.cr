@@ -7,7 +7,7 @@ module Dirless
       getter enrollment_token : String?
       getter identity_store_id : String?
       getter region : String?
-      getter syncer_id : String
+      getter syncer_id : String?
       getter interval_seconds : Int64
       getter heartbeat_interval_seconds : Int64
       getter cert_path : String
@@ -19,7 +19,7 @@ module Dirless
         @enrollment_token : String?,
         @identity_store_id : String?,
         @region : String?,
-        @syncer_id : String,
+        @syncer_id : String?,
         @interval_seconds : Int64,
         @heartbeat_interval_seconds : Int64,
         @cert_path : String,
@@ -37,7 +37,7 @@ module Dirless
           enrollment_token: toml["backend"]["enrollment_token"]?.try(&.as_s),
           identity_store_id: toml["identity_center"]?.try(&.["identity_store_id"]?).try(&.as_s),
           region: toml["identity_center"]?.try(&.["region"]?).try(&.as_s),
-          syncer_id: toml["syncer"]["id"].as_s,
+          syncer_id: toml["syncer"]["id"]?.try(&.as_s),
           interval_seconds: toml["syncer"]["interval_seconds"].as_i.to_i64,
           heartbeat_interval_seconds: toml["syncer"]["heartbeat_interval_seconds"].as_i.to_i64,
           cert_path: toml["tls"]["cert_path"].as_s,

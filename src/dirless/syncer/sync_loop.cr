@@ -10,7 +10,7 @@ module Dirless
     class SyncLoop
       Log = ::Log.for("dirless.syncer")
 
-      def initialize(@config : Config, @identity_store_id : String, @region : String)
+      def initialize(@config : Config, @identity_store_id : String, @region : String, @syncer_id : String)
         @backend = BackendClient.new(
           base_url: @config.backend_url,
           cert_path: @config.cert_path,
@@ -20,7 +20,7 @@ module Dirless
       end
 
       def run : Nil
-        Log.info { "Syncer started (id=#{@config.syncer_id}, interval=#{@config.interval_seconds}s)" }
+        Log.info { "Syncer started (id=#{@syncer_id}, interval=#{@config.interval_seconds}s)" }
         loop do
           run_once
           Log.info { "Sleeping #{@config.interval_seconds}s until next sync" }
@@ -48,7 +48,7 @@ module Dirless
 
       private def acquire_lease : Nil
         Log.info { "Acquiring lease" }
-        expires_at = @backend.acquire_lease(@config.syncer_id)
+        expires_at = @backend.acquire_lease(@syncer_id)
         Log.info { "Lease acquired (expires_at=#{expires_at})" }
       end
 
@@ -62,7 +62,7 @@ module Dirless
               break
             when timeout(@config.heartbeat_interval_seconds.seconds)
               begin
-                @backend.heartbeat(@config.syncer_id)
+                @backend.heartbeat(@syncer_id)
                 Log.debug { "Heartbeat renewed" }
                 consecutive_failures = 0
               rescue ex

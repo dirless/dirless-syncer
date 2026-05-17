@@ -30,6 +30,11 @@ identity_store_id = config.identity_store_id || begin
   Dirless::Syncer::AWSDetector.detect_identity_store_id(region, credentials)
 end
 
-Log.info { "Using region=#{region} identity_store_id=#{identity_store_id}" }
+syncer_id = config.syncer_id || begin
+  Log.info { "syncer id not set in config — using EC2 instance ID" }
+  Dirless::Syncer::AWSDetector.detect_syncer_id
+end
 
-Dirless::Syncer::SyncLoop.new(config, identity_store_id: identity_store_id, region: region).run
+Log.info { "Using region=#{region} identity_store_id=#{identity_store_id} syncer_id=#{syncer_id}" }
+
+Dirless::Syncer::SyncLoop.new(config, identity_store_id: identity_store_id, region: region, syncer_id: syncer_id).run

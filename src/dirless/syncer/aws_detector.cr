@@ -24,6 +24,19 @@ module Dirless
         raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
       end
 
+      # Returns the EC2 instance ID (e.g. "i-1234567890abcdef0") as the syncer ID.
+      def self.detect_syncer_id : String
+        token = fetch_imds_token
+        response = HTTP::Client.get(
+          "#{IMDS_BASE}/latest/meta-data/instance-id",
+          headers: HTTP::Headers{"X-aws-ec2-metadata-token" => token},
+        )
+        raise "IMDS instance-id request failed (HTTP #{response.status_code})" unless response.status_code == 200
+        response.body.strip
+      rescue ex : Socket::ConnectError | IO::TimeoutError
+        raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
+      end
+
       # Calls the SSO Admin ListInstances API to find the Identity Center instance
       # for this AWS account. Requires the sso:ListInstances IAM permission.
       # Raises if no instance is found or more than one is found (ambiguous).
