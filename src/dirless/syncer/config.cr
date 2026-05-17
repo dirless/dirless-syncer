@@ -40,9 +40,9 @@ module Dirless
           syncer_id: toml["syncer"]["id"]?.try(&.as_s),
           interval_seconds: toml["syncer"]["interval_seconds"].as_i.to_i64,
           heartbeat_interval_seconds: toml["syncer"]["heartbeat_interval_seconds"].as_i.to_i64,
-          cert_path: toml["tls"]["cert_path"].as_s,
-          key_path: toml["tls"]["key_path"].as_s,
-          ca_path: toml["tls"]["ca_path"].as_s,
+          cert_path: toml["tls"]?.try(&.["cert_path"]?).try(&.as_s) || "/etc/dirless/client.crt",
+          key_path: toml["tls"]?.try(&.["key_path"]?).try(&.as_s) || "/etc/dirless/client.key",
+          ca_path: toml["tls"]?.try(&.["ca_path"]?).try(&.as_s) || "/etc/dirless/ca.crt",
         )
         config.validate!
         config
