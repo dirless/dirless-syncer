@@ -22,13 +22,13 @@ node already enrolled via dirless-cli.
 %install
 install -Dm 0755 %{SOURCE0} %{buildroot}%{_bindir}/dirless-syncer
 install -d %{buildroot}%{_sysconfdir}/dirless
-install -Dm 0644 %{SOURCE1} %{buildroot}%{_unitdir}/dirless-syncer.service
+install -Dm 0644 %{SOURCE1} %{buildroot}/usr/lib/systemd/system/dirless-syncer.service
 install -Dm 0644 %{SOURCE2} %{buildroot}%{_docdir}/dirless-syncer/dirless-syncer.example.toml
 
 %files
 %{_bindir}/dirless-syncer
 %dir %{_sysconfdir}/dirless
-%{_unitdir}/dirless-syncer.service
+/usr/lib/systemd/system/dirless-syncer.service
 %doc %{_docdir}/dirless-syncer/dirless-syncer.example.toml
 
 %post
