@@ -1,17 +1,10 @@
 [backend]
-url              = "https://yourname.dirless.com"   # your Dirless subdomain
-enrollment_token = "your-token-here"                # from your portal dashboard; only needed on first start
+url              = "https://sync.dirless.com"  # your Dirless backend URL
+enrollment_token = "your-token-here"           # from your portal dashboard; only needed on first start
 
 # [identity_center]
 # identity_store_id = "d-1234567890"  # normally auto-detected via SSO Admin API
 # region            = "us-east-1"     # normally auto-detected from EC2 IMDS
 
 [syncer]
-# id = "syncer-prod-01"             # normally auto-detected from EC2 instance ID
-interval_seconds = 300              # sync every 5 minutes
-heartbeat_interval_seconds = 10     # renew lease every 10s while syncing
-
-# [tls]                                       # defaults to /etc/dirless/ — only set to override
-# cert_path = "/etc/dirless/client.crt"
-# key_path  = "/etc/dirless/client.key"
-# ca_path   = "/etc/dirless/ca.crt"
+interval_seconds = 300  # sync every 5 minutes

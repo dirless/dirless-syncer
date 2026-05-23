@@ -14,8 +14,10 @@ module Dirless
     module SpecHelper
       IDENTITY_STORE_ID = "d-1234567890"
       REGION            = "us-east-1"
-      SYNCER_ID         = "syncer-test-001"
       BACKEND_URL       = "http://localhost:4000"
+      HMAC_SECRET       = "test-hmac-secret"
+      TENANT_ID         = "aws___" + "a" * 64
+      AGE_PUBLIC_KEY    = "age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p"
 
       FAKE_CREDENTIALS = AWSCredentials.new(
         access_key_id: "AKIAIOSFODNN7EXAMPLE",
@@ -36,20 +38,10 @@ module Dirless
           region = "#{REGION}"
 
           [syncer]
-          id = "#{SYNCER_ID}"
           interval_seconds = 300
-          heartbeat_interval_seconds = 10
-
-          [tls]
-          cert_path = "/tmp/dirless-spec-client.crt"
-          key_path  = "/tmp/dirless-spec-client.key"
-          ca_path   = "/tmp/dirless-spec-ca.crt"
           TOML
         Config.load(config_path)
       end
-
-      # The Identity Store API uses JSON 1.1 RPC: all operations POST to the
-      # root endpoint, differentiated by the X-Amz-Target header.
 
       def self.stub_users(users : Array(NamedTuple(id: String, username: String, display_name: String)))
         items = users.map do |u|

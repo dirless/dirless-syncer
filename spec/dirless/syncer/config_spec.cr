@@ -30,14 +30,7 @@ module Dirless::Syncer
           url = "http://localhost:4000"
 
           [syncer]
-          id = "syncer-01"
           interval_seconds = 300
-          heartbeat_interval_seconds = 10
-
-          [tls]
-          cert_path = "/tmp/cert.crt"
-          key_path  = "/tmp/cert.key"
-          ca_path   = "/tmp/ca.crt"
           TOML
         config = Config.load(path)
         config.identity_store_id.should be_nil
@@ -57,33 +50,6 @@ module Dirless::Syncer
           Config.load(path)
         end
       end
-
-      it "raises when cert_path is empty for HTTPS backend" do
-        path = write_config(backend_url: "https://backend.example.com", cert_path: "")
-        expect_raises(Exception, /cert_path must not be empty for HTTPS/) do
-          Config.load(path)
-        end
-      end
-
-      it "raises when key_path is empty for HTTPS backend" do
-        path = write_config(backend_url: "https://backend.example.com", key_path: "")
-        expect_raises(Exception, /key_path must not be empty for HTTPS/) do
-          Config.load(path)
-        end
-      end
-
-      it "raises when ca_path is empty for HTTPS backend" do
-        path = write_config(backend_url: "https://backend.example.com", ca_path: "")
-        expect_raises(Exception, /ca_path must not be empty for HTTPS/) do
-          Config.load(path)
-        end
-      end
-
-      it "allows empty TLS paths for HTTP backend" do
-        path = write_config(backend_url: "http://localhost:4000", cert_path: "", key_path: "", ca_path: "")
-        config = Config.load(path)
-        config.backend_url.should eq("http://localhost:4000")
-      end
     end
   end
 
@@ -91,12 +57,7 @@ module Dirless::Syncer
     backend_url : String = "http://localhost:4000",
     identity_store_id : String = "d-1234567890",
     region : String = "us-east-1",
-    syncer_id : String = "syncer-test-001",
     interval_seconds : Int32 = 300,
-    heartbeat_interval_seconds : Int32 = 10,
-    cert_path : String = "/tmp/cert.crt",
-    key_path : String = "/tmp/cert.key",
-    ca_path : String = "/tmp/ca.crt",
   ) : String
     path = File.tempname("dirless-syncer-config-spec", ".toml")
     File.write(path, <<-TOML)
@@ -108,14 +69,7 @@ module Dirless::Syncer
       region = "#{region}"
 
       [syncer]
-      id = "#{syncer_id}"
       interval_seconds = #{interval_seconds}
-      heartbeat_interval_seconds = #{heartbeat_interval_seconds}
-
-      [tls]
-      cert_path = "#{cert_path}"
-      key_path  = "#{key_path}"
-      ca_path   = "#{ca_path}"
       TOML
     path
   end

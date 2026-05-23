@@ -4,55 +4,59 @@ require "openssl/hmac"
 require "random/secure"
 require "file_utils"
 require "age-crystal"
-require "x509-crystal"
 require "./config"
 
 module Dirless
   module Syncer
     module Enroller
-      CERT_DIR        = "/etc/dirless"
-      HMAC_KEY_PATH   = "/etc/dirless/hmac.key"
-      CERT_VALID_DAYS = 3650
-      IMDS_BASE       = "http://169.254.169.254"
-      IMDS_TOKEN_TTL  = "21600"
+      CERT_DIR            = "/etc/dirless"
+      HMAC_KEY_PATH       = "/etc/dirless/hmac.key"
+      AGE_KEY_PATH        = "/etc/dirless/age.key"
+      AGE_PUBLIC_KEY_PATH = "/etc/dirless/age_public.key"
+      TENANT_ID_PATH      = "/etc/dirless/tenant_id"
+      IMDS_BASE           = "http://169.254.169.254"
+      IMDS_TOKEN_TTL      = "21600"
 
-      def self.enrolled?(config : Config) : Bool
-        File.exists?(config.cert_path) &&
-          File.exists?(config.key_path) &&
-          File.exists?(config.ca_path)
+      def self.enrolled? : Bool
+        File.exists?(AGE_KEY_PATH) &&
+          File.exists?(AGE_PUBLIC_KEY_PATH) &&
+          File.exists?(TENANT_ID_PATH)
       end
 
       def self.enroll(config : Config, token : String) : Nil
-        Log.info { "No mTLS certs found — starting self-enrollment" }
+        Log.info { "Not enrolled — starting enrollment" }
 
-        # Use the enrollment token as the HMAC key so all nodes enrolling
-        # with the same token derive the same tenant ID, regardless of which
-        # machine they run on.
         tenant_id = derive_tenant_id(token)
         Log.info { "Tenant ID: #{tenant_id}" }
 
         Log.info { "Generating age keypair..." }
         age_keypair = Age.keygen
 
-        Log.info { "Generating X.509 certificate bundle..." }
-        bundle = X509.generate(common_name: tenant_id, days: CERT_VALID_DAYS)
-
         FileUtils.mkdir_p(CERT_DIR)
         File.chmod(CERT_DIR, 0o700)
-        write_file(config.ca_path, bundle.ca_cert)
-        write_file(config.cert_path, bundle.client_cert)
-        write_file(config.key_path, bundle.client_key)
-        write_file("/etc/dirless/age.key", age_keypair.secret_key.value)
+        write_file(AGE_KEY_PATH, age_keypair.secret_key.value)
+        write_file(AGE_PUBLIC_KEY_PATH, age_keypair.public_key.value)
+        write_file(TENANT_ID_PATH, tenant_id)
 
         Log.info { "Registering with #{config.backend_url}..." }
-        post_enrollment(config.backend_url, token, tenant_id, age_keypair.public_key.value, bundle.ca_cert)
+        post_enrollment(config.backend_url, token, tenant_id, age_keypair.public_key.value)
 
         Log.info { "Enrollment complete" }
       end
 
+      def self.read_tenant_id : String
+        File.read(TENANT_ID_PATH).strip
+      end
+
+      def self.read_age_public_key : String
+        File.read(AGE_PUBLIC_KEY_PATH).strip
+      end
+
+      def self.read_hmac_secret : String
+        File.read(HMAC_KEY_PATH).strip
+      end
+
       private def self.derive_tenant_id(enrollment_token : String) : String
-        # Write the token as the hmac.key so it persists and matches what
-        # dirless-cli enroll would derive on any other node using the same token.
         write_file(HMAC_KEY_PATH, enrollment_token)
         account_id = fetch_aws_account_id
         hashed = OpenSSL::HMAC.hexdigest(:sha256, enrollment_token, account_id)
@@ -84,10 +88,9 @@ module Dirless
         token : String,
         tenant_id : String,
         age_public_key : String,
-        ca_cert : String,
       ) : Nil
         uri = URI.parse("#{server.rstrip("/")}/v1/enrollment/enroll")
-        body = {tenant_id: tenant_id, age_public_key: age_public_key, ca_cert: ca_cert}.to_json
+        body = {tenant_id: tenant_id, age_public_key: age_public_key}.to_json
 
         client = HTTP::Client.new(uri)
         client.connect_timeout = 10.seconds
