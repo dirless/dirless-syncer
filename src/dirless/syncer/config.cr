@@ -2,6 +2,8 @@ require "toml"
 
 module Dirless
   module Syncer
+    class ConfigError < Exception; end
+
     struct Config
       getter backend_url : String
       getter enrollment_token : String?
@@ -23,22 +25,37 @@ module Dirless
         toml = TOML.parse(raw)
 
         config = new(
-          backend_url: toml["backend"]["url"].as_s,
-          enrollment_token: toml["backend"]["enrollment_token"]?.try(&.as_s),
+          backend_url: fetch!(toml, "backend", "url").as_s,
+          enrollment_token: toml["backend"]?.try(&.["enrollment_token"]?).try(&.as_s),
           identity_store_id: toml["identity_center"]?.try(&.["identity_store_id"]?).try(&.as_s),
           region: toml["identity_center"]?.try(&.["region"]?).try(&.as_s),
-          interval_seconds: toml["syncer"]["interval_seconds"].as_i.to_i64,
+          interval_seconds: fetch!(toml, "syncer", "interval_seconds").as_i64,
         )
         config.validate!
         config
+      rescue ex : File::NotFoundError
+        STDERR.puts "Config file not found: #{path}"
+        STDERR.puts "Set DIRLESS_SYNCER_CONFIG or create /etc/dirless/dirless-syncer.toml"
+        exit 1
+      rescue ex : TOML::ParseException
+        STDERR.puts "Config parse error in #{path}: #{ex.message}"
+        exit 1
+      rescue ex : ConfigError
+        STDERR.puts "Config error: #{ex.message}"
+        exit 1
+      end
+
+      private def self.fetch!(toml, section : String, key : String) : TOML::Any
+        s = toml[section]? || raise ConfigError.new("missing [#{section}] section")
+        s[key]? || raise ConfigError.new("missing #{key} under [#{section}]")
       end
 
       protected def validate!
-        raise "Config error: backend_url must not be empty" if @backend_url.empty?
+        raise ConfigError.new("backend_url must not be empty") if @backend_url.empty?
         unless @backend_url.starts_with?("http://") || @backend_url.starts_with?("https://")
-          raise "Config error: backend_url must start with http:// or https://"
+          raise ConfigError.new("backend_url must start with http:// or https://")
         end
-        raise "Config error: interval_seconds must be positive" if @interval_seconds <= 0
+        raise ConfigError.new("interval_seconds must be positive") if @interval_seconds <= 0
       end
     end
   end
