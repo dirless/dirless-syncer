@@ -102,6 +102,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          token: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
           files: |
             dist/dirless-syncer-x86_64
             dist/dirless-syncer-aarch64
