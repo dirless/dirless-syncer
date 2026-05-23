@@ -2,6 +2,7 @@ require "http/client"
 require "json"
 require "base64"
 require "uri"
+require "compress/gzip"
 require "age-crystal"
 
 module Dirless
@@ -17,11 +18,12 @@ module Dirless
       )
       end
 
-      # Encrypts *payload* with the tenant's age public key and POSTs the
-      # ciphertext to the backend. The backend never sees plaintext.
+      # Compresses, encrypts, and POSTs *payload* to the backend.
+      # The backend stores the ciphertext without ever seeing plaintext.
       def sync(payload : String) : Nil
         pub_key = Age::PublicKey.new(@age_public_key)
-        ciphertext = Age.encrypt(payload, pub_key)
+        compressed = gzip(payload)
+        ciphertext = Age.encrypt(compressed, pub_key)
         encoded = Base64.strict_encode(ciphertext)
         response = post("/v1/syncer/sync", encoded, content_type: "application/octet-stream")
         return if response.status_code == 200
@@ -30,6 +32,12 @@ module Dirless
         raise ex
       rescue ex : Age::Error
         raise BackendError.new("Failed to encrypt sync payload: #{ex.message}")
+      end
+
+      private def gzip(data : String) : Bytes
+        io = IO::Memory.new
+        Compress::Gzip::Writer.open(io) { |gz| gz.print data }
+        io.to_slice
       end
 
       private def post(path : String, body : String, content_type : String = "application/json") : HTTP::Client::Response
