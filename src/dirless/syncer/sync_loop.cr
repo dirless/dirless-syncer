@@ -54,35 +54,71 @@ module Dirless
 
         Log.info { "Fetched #{users.size} users, #{groups.size} groups" }
 
-        payload_groups = groups.map do |group|
-          member_ids = memberships[group.group_id]? || [] of String
-          {
-            "name"        => group.display_name,
-            "external_id" => group.group_id,
-            "members"     => member_ids,
-          }
-        end
+        # Sort by external_id for stable UID/GID assignment across syncs.
+        sorted_groups = groups.sort_by(&.group_id)
+        sorted_users  = users.sort_by(&.user_id)
 
-        user_primary_group = {} of String => String
-        memberships.keys.sort!.each do |group_id|
-          user_ids = memberships[group_id]
-          user_ids.each do |uid|
-            user_primary_group[uid] ||= group_id
+        # GIDs: 60001, 60002, … (one per group)
+        group_gid = {} of String => Int32
+        sorted_groups.each_with_index { |g, i| group_gid[g.group_id] = 60001 + i }
+
+        # UIDs: 60001+groups.size, … (one per user)
+        uid_base = 60001 + sorted_groups.size
+        user_uid = {} of String => Int32
+        sorted_users.each_with_index { |u, i| user_uid[u.user_id] = uid_base + i }
+
+        # Resolve user_id → username for group membership entries.
+        id_to_username = {} of String => String
+        sorted_users.each { |u| id_to_username[u.user_id] = u.username }
+
+        # Primary group GID per user (first group in sorted order they belong to).
+        user_primary_gid = {} of String => Int32
+        sorted_groups.each do |g|
+          gid = group_gid[g.group_id]
+          (memberships[g.group_id]? || [] of String).each do |user_id|
+            user_primary_gid[user_id] ||= gid
           end
         end
 
-        payload_users = users.map do |user|
-          entry = {
-            "username"    => user.username,
-            "external_id" => user.user_id,
-          } of String => String | Nil
-          if primary = user_primary_group[user.user_id]?
-            entry["primary_group"] = primary
+        JSON.build do |json|
+          json.object do
+            json.field "groups" do
+              json.array do
+                sorted_groups.each do |g|
+                  json.object do
+                    json.field "name", g.display_name
+                    json.field "gid", group_gid[g.group_id]
+                    json.field "members" do
+                      json.array do
+                        (memberships[g.group_id]? || [] of String).each do |user_id|
+                          if username = id_to_username[user_id]?
+                            json.string username
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+            json.field "users" do
+              json.array do
+                sorted_users.each do |u|
+                  uid = user_uid[u.user_id]
+                  gid = user_primary_gid[u.user_id]? || uid
+                  json.object do
+                    json.field "username", u.username
+                    json.field "uid", uid
+                    json.field "gid", gid
+                    json.field "gecos", u.display_name
+                    json.field "home", "/home/#{u.username}"
+                    json.field "shell", "/bin/bash"
+                  end
+                end
+              end
+            end
           end
-          entry
         end
-
-        {"groups" => payload_groups, "users" => payload_users}.to_json
       end
     end
   end
