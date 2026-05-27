@@ -35,15 +35,15 @@ module Dirless
       end
 
       def run_once : Nil
-        payload = build_payload
+        payload, user_count, group_count = build_payload
         Log.info { "Posting encrypted sync payload to backend" }
-        @backend.sync(payload)
+        @backend.sync(payload, user_count, group_count)
         Log.info { "Sync complete" }
       rescue ex : Exception
         Log.error { "Sync failed: #{ex.message}" }
       end
 
-      private def build_payload : String
+      private def build_payload : {String, Int32, Int32}
         credentials = IMDSCredentials.fetch
         client = IdentityStoreClient.new(@identity_store_id, @region, credentials)
 
@@ -80,7 +80,7 @@ module Dirless
           end
         end
 
-        JSON.build do |json|
+        payload = JSON.build do |json|
           json.object do
             json.field "groups" do
               json.array do
@@ -119,6 +119,8 @@ module Dirless
             end
           end
         end
+
+        {payload, sorted_users.size, sorted_groups.size}
       end
     end
   end

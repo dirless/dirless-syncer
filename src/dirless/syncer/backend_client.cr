@@ -18,14 +18,19 @@ module Dirless
       )
       end
 
+      private getter age_public_key : String
+
       # Compresses, encrypts, and POSTs *payload* to the backend.
       # The backend stores the ciphertext without ever seeing plaintext.
-      def sync(payload : String) : Nil
+      # Plaintext counts are sent as headers so the backend can report stats
+      # without needing to decrypt anything.
+      def sync(payload : String, user_count : Int32, group_count : Int32) : Nil
         pub_key = Age::PublicKey.new(@age_public_key)
         compressed = gzip(payload)
         ciphertext = Age.encrypt(compressed, pub_key)
         encoded = Base64.strict_encode(ciphertext)
-        response = post("/v1/syncer/sync", encoded, content_type: "application/octet-stream")
+        response = post("/v1/syncer/sync", encoded, content_type: "application/octet-stream",
+                        user_count: user_count, group_count: group_count)
         return if response.status_code == 200
         raise BackendError.new("Sync failed (HTTP #{response.status_code}): #{response.body}")
       rescue ex : BackendError
@@ -40,15 +45,20 @@ module Dirless
         io.to_slice
       end
 
-      private def post(path : String, body : String, content_type : String = "application/json") : HTTP::Client::Response
+      private def post(
+        path : String,
+        body : String,
+        content_type : String = "application/json",
+        user_count : Int32? = nil,
+        group_count : Int32? = nil,
+      ) : HTTP::Client::Response
         uri = URI.parse("#{@base_url}#{path}")
         client = build_client(uri)
+        headers = auth_headers(content_type)
+        headers["X-Dirless-User-Count"]  = user_count.to_s  if user_count
+        headers["X-Dirless-Group-Count"] = group_count.to_s if group_count
         begin
-          client.post(
-            path,
-            headers: auth_headers(content_type),
-            body: body,
-          )
+          client.post(path, headers: headers, body: body)
         rescue ex : Socket::ConnectError | IO::TimeoutError
           raise BackendError.new("Could not connect to Dirless backend at #{@base_url}: #{ex.message}")
         ensure
@@ -58,9 +68,10 @@ module Dirless
 
       private def auth_headers(content_type : String) : HTTP::Headers
         HTTP::Headers{
-          "Content-Type"  => content_type,
-          "Authorization" => "Bearer #{@hmac_secret}",
-          "X-Tenant-ID"   => @tenant_id,
+          "Content-Type"        => content_type,
+          "Authorization"       => "Bearer #{@hmac_secret}",
+          "X-Tenant-ID"         => @tenant_id,
+          "X-Dirless-Recipient" => @age_public_key,
         }
       end
 

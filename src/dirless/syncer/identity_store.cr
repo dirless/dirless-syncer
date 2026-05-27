@@ -101,7 +101,7 @@ module Dirless
 
             next_token = parsed["NextToken"]?.try(&.as_s)
             break unless next_token
-          elsif response.status_code == 429 || response.status_code >= 500
+          elsif response.status_code == 429 || response.status_code >= 500 || response.body.includes?("ThrottlingException")
             retries += 1
             raise "Identity Store API error after #{MAX_RETRIES} retries (HTTP #{response.status_code}): #{response.body}" if retries > MAX_RETRIES
             delay = Math.min(2.0 ** retries, 30.0)
