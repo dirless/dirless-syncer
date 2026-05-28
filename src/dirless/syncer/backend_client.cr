@@ -20,7 +20,7 @@ module Dirless
 
       private getter age_public_key : String
 
-      # Compresses, encrypts, and POSTs *payload* to the backend.
+      # Compresses, encrypts, and PUTs *payload* to the backend.
       # The backend stores the ciphertext without ever seeing plaintext.
       # Plaintext counts are sent as headers so the backend can report stats
       # without needing to decrypt anything.
@@ -29,8 +29,8 @@ module Dirless
         compressed = gzip(payload)
         ciphertext = Age.encrypt(compressed, pub_key)
         encoded = Base64.strict_encode(ciphertext)
-        response = post("/v1/syncer/sync", encoded, content_type: "application/octet-stream",
-                        user_count: user_count, group_count: group_count)
+        response = put("/v1/snapshot/aws-identity-center", encoded, content_type: "application/octet-stream",
+                       user_count: user_count, group_count: group_count)
         return if response.status_code == 200
         raise BackendError.new("Sync failed (HTTP #{response.status_code}): #{response.body}")
       rescue ex : BackendError
@@ -43,6 +43,27 @@ module Dirless
         io = IO::Memory.new
         Compress::Gzip::Writer.open(io) { |gz| gz.print data }
         io.to_slice
+      end
+
+      private def put(
+        path : String,
+        body : String,
+        content_type : String = "application/json",
+        user_count : Int32? = nil,
+        group_count : Int32? = nil,
+      ) : HTTP::Client::Response
+        uri = URI.parse("#{@base_url}#{path}")
+        client = build_client(uri)
+        headers = auth_headers(content_type)
+        headers["X-Dirless-User-Count"]  = user_count.to_s  if user_count
+        headers["X-Dirless-Group-Count"] = group_count.to_s if group_count
+        begin
+          client.put(path, headers: headers, body: body)
+        rescue ex : Socket::ConnectError | IO::TimeoutError
+          raise BackendError.new("Could not connect to Dirless backend at #{@base_url}: #{ex.message}")
+        ensure
+          client.close
+        end
       end
 
       private def post(
