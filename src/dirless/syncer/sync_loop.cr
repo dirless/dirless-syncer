@@ -35,9 +35,10 @@ module Dirless
       end
 
       def run_once : Nil
+        aws_account_id = AWSDetector.detect_account_id
         payload, user_count, group_count = build_payload
         Log.info { "Posting encrypted sync payload to backend" }
-        @backend.sync(payload, user_count, group_count)
+        @backend.sync(payload, user_count, group_count, aws_account_id: aws_account_id)
         Log.info { "Sync complete" }
       rescue ex : Exception
         Log.error { "Sync failed: #{ex.message}" }

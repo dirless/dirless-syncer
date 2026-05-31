@@ -18,8 +18,8 @@ unless Dirless::Syncer::Enroller.enrolled?
   Dirless::Syncer::Enroller.enroll(config, token)
 end
 
-hmac_secret = Dirless::Syncer::Enroller.read_hmac_secret
-tenant_id = Dirless::Syncer::Enroller.read_tenant_id
+hmac_secret    = Dirless::Syncer::Enroller.read_hmac_secret
+tenant_id      = Dirless::Syncer::Enroller.read_tenant_id
 age_public_key = Dirless::Syncer::Enroller.read_age_public_key
 
 region = config.region || begin

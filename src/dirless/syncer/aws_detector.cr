@@ -24,6 +24,20 @@ module Dirless
         raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
       end
 
+      # Returns the AWS account ID for the running EC2 instance via IMDSv2.
+      def self.detect_account_id : String
+        token = fetch_imds_token
+        doc = HTTP::Client.get(
+          "#{IMDS_BASE}/latest/dynamic/instance-identity/document",
+          headers: HTTP::Headers{"X-aws-ec2-metadata-token" => token},
+        )
+        raise "IMDS identity document request failed (HTTP #{doc.status_code})" unless doc.status_code == 200
+        JSON.parse(doc.body)["accountId"]?.try(&.as_s) ||
+          raise "accountId not found in IMDS identity document"
+      rescue ex : Socket::ConnectError | IO::TimeoutError
+        raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
+      end
+
       # Returns the EC2 instance ID (e.g. "i-1234567890abcdef0") as the syncer ID.
       def self.detect_syncer_id : String
         token = fetch_imds_token
