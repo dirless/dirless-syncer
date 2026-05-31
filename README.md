@@ -1,21 +1,22 @@
 # dirless-syncer
 
-Syncs users, groups, and memberships from AWS IAM Identity Center to the
-Dirless backend. Runs on customer infrastructure — the backend never reaches
-into your AWS account.
+Syncs users, groups, and memberships from AWS IAM Identity Center to the Dirless backend. Runs on customer infrastructure — the backend never reaches into your AWS account.
 
 ## How it works
 
 1. Fetches temporary AWS credentials from EC2 IMDS (IMDSv2)
-2. Calls the Identity Store API to list users, groups, and memberships
-3. Acquires a sync lease from the Dirless backend (one syncer per tenant at a time)
-4. POSTs the sync payload to the backend over mTLS
-5. Renews the lease via heartbeat while the sync is in progress
+2. Fetches the AWS account ID from the IMDS identity document
+3. Calls the Identity Store API to list users, groups, and memberships
+4. Encrypts the payload with age using the enrolled public key
+5. PUTs the encrypted snapshot to the backend (`PUT /v1/snapshot/aws-identity-center`)
 6. Sleeps until the next interval
+
+The backend receives only the encrypted blob — it never sees plaintext user data.
 
 ## Requirements
 
 - Must run on an EC2 instance with an IAM role that has Identity Store read permissions
+- `dirless-cli enroll` must have run first to generate mTLS certificates
 
 ## IAM permissions required
 
@@ -25,8 +26,7 @@ into your AWS account.
   "Action": [
     "identitystore:ListUsers",
     "identitystore:ListGroups",
-    "identitystore:ListGroupMemberships",
-    "sso:ListInstances"
+    "identitystore:ListGroupMemberships"
   ],
   "Resource": "*"
 }
@@ -52,13 +52,7 @@ chmod +x /usr/local/bin/dirless-syncer
 
 ## Configuration
 
-Copy the example config and fill in your values:
-
-```sh
-cp /usr/share/doc/dirless-syncer/dirless-syncer.example.toml /etc/dirless/dirless-syncer.toml
-```
-
-Or create `/etc/dirless/dirless-syncer.toml` manually:
+Create `/etc/dirless/dirless-syncer.toml`:
 
 ```toml
 [backend]
@@ -70,25 +64,29 @@ enrollment_token = "your-token-here"               # from your portal dashboard
 # region = "us-east-1"
 
 [syncer]
-id = "syncer-01"               # unique, stable name for this syncer instance
-interval_seconds = 300         # sync every 5 minutes
+interval_seconds = 300  # sync every 5 minutes
 ```
 
-On first start, the syncer uses `enrollment_token` to generate mTLS certificates and register
-with the backend automatically. The token can be removed from the config afterwards — the
-certificates handle authentication from that point on.
+On first start, the syncer uses `enrollment_token` to generate mTLS certificates and register with the backend. The token can be removed from the config afterwards.
 
-The config path can be overridden with the `DIRLESS_SYNCER_CONFIG` environment variable.
+Config path can be overridden with `DIRLESS_SYNCER_CONFIG`.
 
 ## Running
 
 ```sh
-# If installed via RPM (service file included):
+# If installed via RPM (systemd unit included):
 systemctl enable --now dirless-syncer
 
 # Or run directly:
 dirless-syncer
 ```
+
+## UID/GID assignment
+
+UIDs and GIDs are assigned deterministically based on the sorted order of Identity Store object IDs — the same user always gets the same UID across every node in the fleet, without any central coordination.
+
+- Groups: GIDs starting at 60001
+- Users: UIDs starting at `60001 + number_of_groups`
 
 ## Building from source
 
