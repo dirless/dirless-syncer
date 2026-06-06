@@ -23,7 +23,7 @@ module Dirless
         role = fetch_role(token)
         fetch_credentials(token, role)
       rescue ex : Socket::ConnectError | IO::TimeoutError
-        raise "Cannot reach AWS IMDS — is this an EC2 instance? (#{ex.message})"
+        raise "Cannot reach AWS IMDS - is this an EC2 instance? (#{ex.message})"
       end
 
       private def self.fetch_token : String

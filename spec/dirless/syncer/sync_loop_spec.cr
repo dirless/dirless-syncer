@@ -60,7 +60,7 @@ module Dirless::Syncer
         WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/sync")
           .to_return(status: 200, body: {"status" => "ok"}.to_json)
 
-        new_loop.run_once # should not raise — determinism verified at IdentityStore level
+        new_loop.run_once # should not raise - determinism verified at IdentityStore level
       end
 
       it "handles a backend sync error gracefully" do

@@ -24,7 +24,7 @@ module Dirless
       end
 
       def self.enroll(config : Config, token : String) : Nil
-        Log.info { "Not enrolled — starting enrollment" }
+        Log.info { "Not enrolled - starting enrollment" }
 
         tenant_id = derive_tenant_id(token)
         Log.info { "Tenant ID: #{tenant_id}" }
@@ -80,7 +80,7 @@ module Dirless
         parsed = JSON.parse(identity.body)
         parsed["accountId"]?.try(&.as_s) || raise "accountId not found in IMDS identity document"
       rescue ex : Socket::ConnectError | IO::TimeoutError
-        raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
+        raise "Cannot reach AWS IMDS - is this running on an EC2 instance? (#{ex.message})"
       end
 
       private def self.post_enrollment(
@@ -108,7 +108,7 @@ module Dirless
         when 200
           # enrolled
         when 401
-          raise "Enrollment failed: invalid token — check enrollment_token in config"
+          raise "Enrollment failed: invalid token - check enrollment_token in config"
         when 403
           parsed = JSON.parse(response.body)
           raise "Enrollment failed: #{parsed["error"]?}"

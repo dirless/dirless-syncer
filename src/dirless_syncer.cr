@@ -23,12 +23,12 @@ tenant_id      = Dirless::Syncer::Enroller.read_tenant_id
 age_public_key = Dirless::Syncer::Enroller.read_age_public_key
 
 region = config.region || begin
-  Log.info { "region not set in config — auto-detecting from IMDS" }
+  Log.info { "region not set in config - auto-detecting from IMDS" }
   Dirless::Syncer::AWSDetector.detect_region
 end
 
 identity_store_id = config.identity_store_id || begin
-  Log.info { "identity_store_id not set in config — auto-detecting via SSO Admin API" }
+  Log.info { "identity_store_id not set in config - auto-detecting via SSO Admin API" }
   credentials = Dirless::Syncer::IMDSCredentials.fetch
   Dirless::Syncer::AWSDetector.detect_identity_store_id(region, credentials)
 end

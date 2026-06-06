@@ -66,17 +66,17 @@ module Dirless::Syncer
         end
       end
 
-      it "propagates HTTP client errors as exceptions (M1 — timeout/connection errors bubble up)" do
+      it "propagates HTTP client errors as exceptions (M1 - timeout/connection errors bubble up)" do
         # WebMock raises an error for unstubbed requests, simulating a
         # connection or network failure. The IdentityStoreClient must not
-        # swallow the error — it should propagate so the caller can handle it.
+        # swallow the error - it should propagate so the caller can handle it.
         expect_raises(Exception) do
           IdentityStoreClient.new(is_id, region, creds).list_users
         end
       end
 
       it "does not leak HTTP clients on connection errors (ensure closes client)" do
-        # Unstubbed request raises — the ensure block must close the client.
+        # Unstubbed request raises - the ensure block must close the client.
         # If the client leaks, this would eventually exhaust file descriptors.
         # We verify the exception propagates cleanly (ensure doesn't mask it).
         5.times do

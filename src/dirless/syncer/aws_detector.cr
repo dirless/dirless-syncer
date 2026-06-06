@@ -21,7 +21,7 @@ module Dirless
         JSON.parse(doc.body)["region"]?.try(&.as_s) ||
           raise "region not found in IMDS identity document"
       rescue ex : Socket::ConnectError | IO::TimeoutError
-        raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
+        raise "Cannot reach AWS IMDS - is this running on an EC2 instance? (#{ex.message})"
       end
 
       # Returns the AWS account ID for the running EC2 instance via IMDSv2.
@@ -48,7 +48,7 @@ module Dirless
         raise "IMDS instance-id request failed (HTTP #{response.status_code})" unless response.status_code == 200
         response.body.strip
       rescue ex : Socket::ConnectError | IO::TimeoutError
-        raise "Cannot reach AWS IMDS — is this running on an EC2 instance? (#{ex.message})"
+        raise "Cannot reach AWS IMDS - is this running on an EC2 instance? (#{ex.message})"
       end
 
       # Calls the SSO Admin ListInstances API to find the Identity Center instance
@@ -79,7 +79,7 @@ module Dirless
           instances[0]["IdentityStoreId"]?.try(&.as_s) ||
             raise "IdentityStoreId missing from SSO Admin ListInstances response"
         else
-          raise "Multiple IAM Identity Center instances found — set identity_store_id " \
+          raise "Multiple IAM Identity Center instances found - set identity_store_id " \
                 "explicitly in config to specify which one to use"
         end
       rescue ex : Socket::ConnectError | IO::TimeoutError
