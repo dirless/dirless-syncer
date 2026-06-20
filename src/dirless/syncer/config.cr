@@ -33,16 +33,6 @@ module Dirless
         )
         config.validate!
         config
-      rescue ex : File::NotFoundError
-        STDERR.puts "Config file not found: #{path}"
-        STDERR.puts "Set DIRLESS_SYNCER_CONFIG or create /etc/dirless/dirless-syncer.toml"
-        exit 1
-      rescue ex : TOML::ParseException
-        STDERR.puts "Config parse error in #{path}: #{ex.message}"
-        exit 1
-      rescue ex : ConfigError
-        STDERR.puts "Config error: #{ex.message}"
-        exit 1
       end
 
       private def self.fetch!(toml, section : String, key : String) : TOML::Any

@@ -8,7 +8,19 @@ require "./dirless/syncer/sync_loop"
 Log.setup_from_env(default_level: :info)
 
 config_path = ENV.fetch("DIRLESS_SYNCER_CONFIG", "/etc/dirless/dirless-syncer.toml")
-config = Dirless::Syncer::Config.load(config_path)
+config = begin
+  Dirless::Syncer::Config.load(config_path)
+rescue ex : File::NotFoundError
+  STDERR.puts "Config file not found: #{config_path}"
+  STDERR.puts "Set DIRLESS_SYNCER_CONFIG or create /etc/dirless/dirless-syncer.toml"
+  exit 1
+rescue ex : TOML::ParseException
+  STDERR.puts "Config parse error in #{config_path}: #{ex.message}"
+  exit 1
+rescue ex : Dirless::Syncer::ConfigError
+  STDERR.puts "Config error: #{ex.message}"
+  exit 1
+end
 
 unless Dirless::Syncer::Enroller.enrolled?
   token = config.enrollment_token || begin
