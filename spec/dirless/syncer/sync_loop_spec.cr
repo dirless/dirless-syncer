@@ -24,7 +24,7 @@ module Dirless::Syncer
     ])
     SpecHelper.stub_groups([{id: "grp-001", display_name: "engineering"}])
     SpecHelper.stub_memberships("grp-001", ["usr-001", "usr-002"])
-    WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/sync")
+    WebMock.stub(:put, "#{BACKEND_HOST}/v1/snapshot/aws-identity-center")
       .to_return(status: 200, body: {"status" => "ok"}.to_json)
   end
 
@@ -57,7 +57,7 @@ module Dirless::Syncer
         SpecHelper.stub_memberships("grp-zebra", ["usr-001"])
         SpecHelper.stub_memberships("grp-alpha", ["usr-001"])
         SpecHelper.stub_memberships("grp-mid", ["usr-001"])
-        WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/sync")
+        WebMock.stub(:put, "#{BACKEND_HOST}/v1/snapshot/aws-identity-center")
           .to_return(status: 200, body: {"status" => "ok"}.to_json)
 
         new_loop.run_once # should not raise - determinism verified at IdentityStore level
@@ -65,7 +65,7 @@ module Dirless::Syncer
 
       it "handles a backend sync error gracefully" do
         stub_happy_path
-        WebMock.stub(:post, "#{BACKEND_HOST}/v1/syncer/sync")
+        WebMock.stub(:put, "#{BACKEND_HOST}/v1/snapshot/aws-identity-center")
           .to_return(status: 413, body: {"error" => "payload exceeds maximum allowed size"}.to_json)
 
         new_loop.run_once # errors are logged, not propagated
