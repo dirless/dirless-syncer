@@ -9,7 +9,8 @@ module Dirless
     record ISUser,
       user_id : String,
       username : String,
-      display_name : String
+      display_name : String,
+      email : String?
 
     record ISGroup,
       group_id : String,
@@ -33,6 +34,7 @@ module Dirless
             user_id: item["UserId"].as_s,
             username: item["UserName"].as_s,
             display_name: item["DisplayName"]?.try(&.as_s) || item["UserName"].as_s,
+            email: item["Emails"]?.try(&.as_a.first?).try(&.["Value"].as_s),
           )
         end
       end

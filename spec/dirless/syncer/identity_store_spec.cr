@@ -22,6 +22,19 @@ module Dirless::Syncer
         users[1].username.should eq("bob")
       end
 
+      it "extracts email when present" do
+        SpecHelper.stub_users_with_email([
+          {id: "usr-001", username: "alice", display_name: "Alice Example", email: "alice@example.com"},
+          {id: "usr-002", username: "bob", display_name: "Bob Example", email: nil},
+        ])
+
+        client = IdentityStoreClient.new(is_id, region, creds)
+        users = client.list_users
+
+        users[0].email.should eq("alice@example.com")
+        users[1].email.should be_nil
+      end
+
       it "returns empty array when no users exist" do
         WebMock.stub(:post, SpecHelper::IS_ENDPOINT)
           .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})

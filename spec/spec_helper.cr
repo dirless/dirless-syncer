@@ -45,12 +45,39 @@ module Dirless
       end
 
       def self.stub_users(users : Array(NamedTuple(id: String, username: String, display_name: String)))
-        items = users.map do |u|
-          {"UserId" => u[:id], "UserName" => u[:username], "DisplayName" => u[:display_name]}
+        stub_users_with_email(users.map { |u| {id: u[:id], username: u[:username], display_name: u[:display_name], email: nil.as(String?)} })
+      end
+
+      def self.stub_users_with_email(users : Array(NamedTuple(id: String, username: String, display_name: String, email: String?)))
+        body = JSON.build do |json|
+          json.object do
+            json.field "Users" do
+              json.array do
+                users.each do |u|
+                  json.object do
+                    json.field "UserId", u[:id]
+                    json.field "UserName", u[:username]
+                    json.field "DisplayName", u[:display_name]
+                    if email = u[:email]
+                      json.field "Emails" do
+                        json.array do
+                          json.object do
+                            json.field "Value", email
+                            json.field "Type", "work"
+                            json.field "Primary", true
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
         end
         WebMock.stub(:post, IS_ENDPOINT)
           .with(headers: {"X-Amz-Target" => "AWSIdentityStore.ListUsers"})
-          .to_return(status: 200, body: {"Users" => items}.to_json)
+          .to_return(status: 200, body: body)
       end
 
       def self.stub_groups(groups : Array(NamedTuple(id: String, display_name: String)))

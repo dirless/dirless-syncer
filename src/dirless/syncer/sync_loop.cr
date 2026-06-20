@@ -114,6 +114,7 @@ module Dirless
                     json.field "gecos", u.display_name
                     json.field "home", "/home/#{u.username}"
                     json.field "shell", "/bin/bash"
+                    json.field "email", u.email if u.email
                   end
                 end
               end
