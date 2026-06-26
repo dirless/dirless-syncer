@@ -26,15 +26,23 @@ module Dirless
       def self.enroll(config : Config, token : String) : Nil
         Log.info { "Not enrolled - starting enrollment" }
 
+        unless File.exists?(AGE_KEY_PATH)
+          raise "Age private key not found at #{AGE_KEY_PATH}.\n" \
+                "Generate a keypair at https://dirless.com/age-keypair.html " \
+                "and place the private key at #{AGE_KEY_PATH} (chmod 600).\n" \
+                "Use the same key you enrolled your hosts with."
+        end
+
+        secret_key = File.read(AGE_KEY_PATH).strip
+        age_keypair = Age.keypair_from_secret(secret_key)
+        Log.info { "Using existing age key: #{age_keypair.public_key.value}" }
+
         tenant_id = derive_tenant_id(token)
         Log.info { "Tenant ID: #{tenant_id}" }
 
-        Log.info { "Generating age keypair..." }
-        age_keypair = Age.keygen
-
         FileUtils.mkdir_p(CERT_DIR)
         File.chmod(CERT_DIR, 0o700)
-        write_file(AGE_KEY_PATH, age_keypair.secret_key.value)
+        File.chmod(AGE_KEY_PATH, 0o600)
         write_file(AGE_PUBLIC_KEY_PATH, age_keypair.public_key.value)
         write_file(TENANT_ID_PATH, tenant_id)
 

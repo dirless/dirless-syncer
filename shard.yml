@@ -1,5 +1,5 @@
 name: dirless-syncer
-version: 0.5.3
+version: 0.5.4
 
 description: Sync AWS IAM Identity Center users to Dirless-enrolled Linux nodes
 
@@ -15,7 +15,7 @@ dependencies:
     github: crystal-community/toml.cr
     version: "~> 0.8.1"
   age-crystal:
-    github: dirless/age-crystal
+    path: ../age-crystal
     version: 0.2.1
 
 development_dependencies:
