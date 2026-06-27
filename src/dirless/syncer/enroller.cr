@@ -67,8 +67,7 @@ module Dirless
       private def self.derive_tenant_id(enrollment_token : String) : String
         write_file(HMAC_KEY_PATH, enrollment_token)
         account_id = fetch_aws_account_id
-        hashed = OpenSSL::HMAC.hexdigest(:sha256, enrollment_token, account_id)
-        "aws___#{hashed}"
+        OpenSSL::HMAC.hexdigest(:sha256, enrollment_token, account_id)
       end
 
       private def self.fetch_aws_account_id : String
